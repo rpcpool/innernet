@@ -437,6 +437,11 @@ pub struct NatOpts {
     /// Don't report any candidates to coordinating server.
     /// Shorthand for --exclude-nat-candidates '0.0.0.0/0'.
     pub no_nat_candidates: bool,
+
+    #[clap(long)]
+    /// Priorities candidads from given IP range.
+    /// ex. --local-ip-range '192.168.10.0/24'
+    pub local_ip_range: Option<IpNet>,
 }
 
 impl NatOpts {
@@ -445,6 +450,7 @@ impl NatOpts {
             no_nat_traversal: true,
             exclude_nat_candidates: vec![],
             no_nat_candidates: true,
+            local_ip_range: None,
         }
     }
 
