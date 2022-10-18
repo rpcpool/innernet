@@ -567,7 +567,7 @@ fn fetch(
     let State { peers, cidrs } = api.http("GET", "/user/state")?;
 
     let device = Device::get(interface, opts.network.backend)?;
-    let modifications = device.diff(&peers);
+    let mut modifications = device.diff(&peers);
 
     let updates = modifications
         .iter()
@@ -621,6 +621,34 @@ fn fetch(
     if nat.no_nat_traversal {
         log::debug!("NAT traversal explicitly disabled, not attempting.");
     } else {
+        let mut peers = Vec::with_capacity(modifications.len());
+        if let Some(local_ip_range) = nat.local_ip_range {
+            for diff in &modifications {
+                peers.push(
+                    diff.new
+                        .cloned()
+                        .map(|mut peer| {
+                            let mut candidates = vec![];
+                            let mut rest = vec![];
+                            for endpoint in peer.candidates.drain(..) {
+                                let addr = endpoint.resolve().with_str(endpoint.to_string())?;
+                                if local_ip_range.contains(&addr.ip()) {
+                                    candidates.push(endpoint);
+                                } else {
+                                    rest.push(endpoint);
+                                }
+                            }
+                            candidates.append(&mut rest);
+                            peer.candidates = candidates;
+                            Ok::<_, anyhow::Error>(peer)
+                        })
+                        .transpose()?,
+                );
+            }
+            for (i, mut diff) in modifications.iter_mut().enumerate() {
+                diff.new = peers.get(i).expect("same length").as_ref();
+            }
+        }
         let mut nat_traverse = NatTraverse::new(interface, opts.network.backend, &modifications)?;
 
         // Give time for handshakes with recently changed endpoints to complete before attempting traversal.
