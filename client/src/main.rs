@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail};
-use clap::{AppSettings, Args, IntoApp, Parser, Subcommand};
+use clap::{ArgAction, Args, Parser, Subcommand};
 use colored::*;
 use dialoguer::{Confirm, Input};
 use hostsfile::HostsBuilder;
@@ -47,15 +47,14 @@ macro_rules! println_pad {
 }
 
 #[derive(Clone, Debug, Parser)]
-#[clap(name = "innernet", author, version, about)]
-#[clap(global_setting(AppSettings::DeriveDisplayOrder))]
+#[command(name = "innernet", author, version, about)]
 struct Opts {
     #[clap(subcommand)]
     command: Option<Command>,
 
     /// Verbose output, use -vv for even higher verbositude
-    #[clap(short, long, parse(from_occurrences))]
-    verbose: u64,
+    #[clap(short, long, action = ArgAction::Count)]
+    verbose: u8,
 
     #[clap(short, long, default_value = "/etc/innernet")]
     config_dir: PathBuf,
@@ -74,7 +73,7 @@ struct HostsOpt {
     hosts_path: PathBuf,
 
     /// Don't write to any hosts files
-    #[clap(long = "no-write-hosts", conflicts_with = "hosts-path")]
+    #[clap(long = "no-write-hosts", conflicts_with = "hosts_path")]
     no_write_hosts: bool,
 }
 
@@ -264,7 +263,7 @@ enum Command {
 
     /// Generate shell completion scripts
     Completions {
-        #[clap(arg_enum)]
+        #[clap(value_enum)]
         shell: clap_complete::Shell,
     },
 }
@@ -290,8 +289,6 @@ fn update_hosts_file(
     hosts_path: PathBuf,
     peers: &[Peer],
 ) -> Result<(), WrappedIoError> {
-    log::info!("updating {} with the latest peers.", "/etc/hosts".yellow());
-
     let mut hosts_builder = HostsBuilder::new(format!("innernet {interface}"));
     for peer in peers {
         hosts_builder.add_hostname(
@@ -299,9 +296,16 @@ fn update_hosts_file(
             &format!("{}.{}.wg", peer.contents.name, interface),
         );
     }
-    if let Err(e) = hosts_builder.write_to(&hosts_path).with_path(hosts_path) {
-        log::warn!("failed to update hosts ({})", e);
-    }
+    match hosts_builder.write_to(&hosts_path).with_path(&hosts_path) {
+        Ok(has_written) if has_written => {
+            log::info!(
+                "updated {} with the latest peers.",
+                hosts_path.to_string_lossy().yellow()
+            )
+        },
+        Ok(_) => {},
+        Err(e) => log::warn!("failed to update hosts ({})", e),
+    };
 
     Ok(())
 }
@@ -1211,16 +1215,6 @@ fn main() {
     let opts = Opts::parse();
     util::init_logger(opts.verbose);
 
-    let argv0 = std::env::args().next().unwrap();
-    let executable = Path::new(&argv0).file_name().unwrap().to_str().unwrap();
-    if executable == "inn" {
-        log::warn!("");
-        log::warn!("  {}: the {} shortcut will be removed from OS packages soon in favor of users creating a shell alias.", "WARNING".bold(), "inn".yellow());
-        log::warn!("");
-        log::warn!("  See https://github.com/tonarino/innernet/issues/176 for instructions to continue using it.");
-        log::warn!("");
-    }
-
     if let Err(e) = run(&opts) {
         println!();
         log::error!("{}\n", e);
@@ -1320,6 +1314,7 @@ fn run(opts: &Opts) -> Result<(), Error> {
             override_endpoint(&interface, opts, sub_opts)?;
         },
         Command::Completions { shell } => {
+            use clap::CommandFactory;
             let mut app = Opts::command();
             let app_name = app.get_name().to_string();
             clap_complete::generate(shell, &mut app, app_name, &mut std::io::stdout());

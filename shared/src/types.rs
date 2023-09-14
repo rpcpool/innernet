@@ -1,7 +1,10 @@
 use anyhow::{anyhow, Error};
-use clap::Args;
+use clap::{
+    builder::{PossibleValuesParser, TypedValueParser},
+    Args,
+};
 use ipnet::IpNet;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -286,7 +289,7 @@ pub struct RedeemContents {
 #[derive(Debug, Clone, PartialEq, Eq, Args)]
 pub struct InstallOpts {
     /// Set a specific interface name
-    #[clap(long, conflicts_with = "default-name")]
+    #[clap(long, conflicts_with = "default_name")]
     pub name: Option<String>,
 
     /// Use the network name inside the invitation as the interface name
@@ -305,7 +308,7 @@ pub struct AddPeerOpts {
     pub name: Option<Hostname>,
 
     /// Specify desired IP of new peer (within parent CIDR)
-    #[clap(long, conflicts_with = "auto-ip")]
+    #[clap(long, conflicts_with = "auto_ip")]
     pub ip: Option<IpAddr>,
 
     /// Auto-assign the peer the first available IP within the CIDR
@@ -410,7 +413,7 @@ pub struct ListenPortOpts {
     pub listen_port: Option<u16>,
 
     /// Unset the local listen port to use a randomized port
-    #[clap(short, long, conflicts_with = "listen-port")]
+    #[clap(short, long, conflicts_with = "listen_port")]
     pub unset: bool,
 
     /// Bypass confirmation
@@ -445,7 +448,7 @@ pub struct NatOpts {
     /// ex. --exclude-nat-candidates '0.0.0.0/0' would report no candidates.
     pub exclude_nat_candidates: Vec<IpNet>,
 
-    #[clap(long, conflicts_with = "exclude-nat-candidates")]
+    #[clap(long, conflicts_with = "exclude_nat_candidates")]
     /// Don't report any candidates to coordinating server.
     /// Shorthand for --exclude-nat-candidates '0.0.0.0/0'.
     pub no_nat_candidates: bool,
@@ -483,7 +486,7 @@ pub struct NetworkOpts {
     /// external tool like e.g. babeld.
     pub no_routing: bool,
 
-    #[clap(long, default_value_t, possible_values = Backend::variants())]
+    #[clap(long, default_value_t, value_parser = PossibleValuesParser::new(Backend::variants()).map(|s| s.parse::<Backend>().unwrap()))]
     /// Specify a WireGuard backend to use.
     /// If not set, innernet will auto-select based on availability.
     pub backend: Backend,
@@ -537,35 +540,55 @@ impl Display for Peer {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ChangeString {
-    name: &'static str,
-    old: Option<String>,
-    new: Option<String>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PeerChange {
+    AllowedIPs {
+        old: Vec<AllowedIp>,
+        new: Vec<AllowedIp>,
+    },
+    PersistentKeepalive {
+        old: Option<u16>,
+        new: Option<u16>,
+    },
+    Endpoint {
+        old: Option<SocketAddr>,
+        new: Option<SocketAddr>,
+    },
+    NatTraverseReattempt,
 }
 
-impl Display for ChangeString {
+impl Display for PeerChange {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}: {} => {}",
-            self.name,
-            self.old.as_deref().unwrap_or("[none]"),
-            self.new.as_deref().unwrap_or("[none]")
-        )
+        match self {
+            Self::AllowedIPs { old, new } => write!(f, "Allowed IPs: {:?} => {:?}", old, new),
+            Self::PersistentKeepalive { old, new } => write!(
+                f,
+                "Persistent Keepalive: {} => {}",
+                old.display_string(),
+                new.display_string()
+            ),
+            Self::Endpoint { old, new } => write!(
+                f,
+                "Endpoint: {} => {}",
+                old.display_string(),
+                new.display_string()
+            ),
+            Self::NatTraverseReattempt => write!(f, "NAT Traversal Reattempt"),
+        }
     }
 }
 
-impl ChangeString {
-    pub fn new<T, U>(name: &'static str, old: Option<T>, new: Option<U>) -> Self
-    where
-        T: fmt::Debug,
-        U: fmt::Debug,
-    {
-        Self {
-            name,
-            old: old.map(|t| format!("{t:?}")),
-            new: new.map(|t| format!("{t:?}")),
+trait OptionExt {
+    fn display_string(&self) -> String;
+}
+
+impl<T: std::fmt::Debug> OptionExt for Option<T> {
+    fn display_string(&self) -> String {
+        match self {
+            Some(x) => {
+                format!("{:?}", x)
+            },
+            None => "[none]".to_string(),
         }
     }
 }
@@ -577,7 +600,7 @@ pub struct PeerDiff<'a> {
     pub old: Option<&'a PeerConfig>,
     pub new: Option<&'a Peer>,
     builder: PeerConfigBuilder,
-    changes: Vec<ChangeString>,
+    changes: Vec<PeerChange>,
 }
 
 impl<'a> PeerDiff<'a> {
@@ -606,14 +629,14 @@ impl<'a> PeerDiff<'a> {
         self.builder.public_key()
     }
 
-    pub fn changes(&self) -> &[ChangeString] {
+    pub fn changes(&self) -> &[PeerChange] {
         &self.changes
     }
 
     fn peer_config_builder(
         old_info: Option<&PeerInfo>,
         new: Option<&Peer>,
-    ) -> Option<(PeerConfigBuilder, Vec<ChangeString>)> {
+    ) -> Option<(PeerConfigBuilder, Vec<PeerChange>)> {
         let old = old_info.map(|p| &p.config);
         let public_key = match (old, new) {
             (Some(old), _) => old.public_key.clone(),
@@ -630,8 +653,6 @@ impl<'a> PeerDiff<'a> {
         // diff.new is now guaranteed to be a Some(_) variant.
         let new = new.unwrap();
 
-        // TODO(jake): use contains() when stable: https://github.com/rust-lang/rust/issues/62358
-
         let new_allowed_ips = &[AllowedIp {
             address: new.ip,
             cidr: if new.ip.is_ipv4() { 32 } else { 128 },
@@ -640,11 +661,10 @@ impl<'a> PeerDiff<'a> {
             builder = builder
                 .replace_allowed_ips()
                 .add_allowed_ips(new_allowed_ips);
-            changes.push(ChangeString::new(
-                "AllowedIPs",
-                old.map(|o| &o.allowed_ips[..]),
-                Some(&new_allowed_ips[0]),
-            ));
+            changes.push(PeerChange::AllowedIPs {
+                old: old.map(|o| o.allowed_ips.clone()).unwrap_or_else(Vec::new),
+                new: new_allowed_ips.to_vec(),
+            });
         }
 
         if old.is_none()
@@ -654,11 +674,10 @@ impl<'a> PeerDiff<'a> {
                 Some(interval) => builder.set_persistent_keepalive_interval(interval),
                 None => builder.unset_persistent_keepalive(),
             };
-            changes.push(ChangeString::new(
-                "PersistentKeepalive",
-                old.and_then(|p| p.persistent_keepalive_interval),
-                new.persistent_keepalive_interval,
-            ));
+            changes.push(PeerChange::PersistentKeepalive {
+                old: old.and_then(|p| p.persistent_keepalive_interval),
+                new: new.persistent_keepalive_interval,
+            });
         }
 
         // We won't update the endpoint if there's already a stable connection.
@@ -671,20 +690,15 @@ impl<'a> PeerDiff<'a> {
             if let Some(addr) = resolved {
                 if old.is_none() || matches!(old, Some(old) if old.endpoint != resolved) {
                     builder = builder.set_endpoint(addr);
-                    changes.push(ChangeString::new(
-                        "Endpoint",
-                        old.and_then(|p| p.endpoint),
-                        Some(addr),
-                    ));
+                    changes.push(PeerChange::Endpoint {
+                        old: old.and_then(|p| p.endpoint),
+                        new: Some(addr),
+                    });
                     endpoint_changed = true;
                 }
             }
             if !endpoint_changed && !new.candidates.is_empty() {
-                changes.push(ChangeString::new(
-                    "Connection status",
-                    "Disconnected".into(),
-                    "NAT traverse reattempt".into(),
-                ));
+                changes.push(PeerChange::NatTraverseReattempt)
             }
         }
 
@@ -776,11 +790,9 @@ impl From<Timestring> for Duration {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Hostname(String);
 
-lazy_static! {
-    /// Regex to match the requirements of hostname(7), needed to have peers also be reachable hostnames.
-    /// Note that the full length also must be maximum 63 characters, which this regex does not check.
-    static ref HOSTNAME_REGEX: Regex = Regex::new(r"^([a-z0-9]-?)*[a-z0-9]$").unwrap();
-}
+/// Regex to match the requirements of hostname(7), needed to have peers also be reachable hostnames.
+/// Note that the full length also must be maximum 63 characters, which this regex does not check.
+static HOSTNAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^([a-z0-9]-?)*[a-z0-9]$").unwrap());
 
 impl Hostname {
     pub fn is_valid(name: &str) -> bool {

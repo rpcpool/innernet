@@ -1,5 +1,8 @@
 # innernet
 
+[![Actively Maintained](https://img.shields.io/badge/Maintenance%20Level-Actively%20Maintained-green.svg)](https://gist.github.com/cheerfulstoic/d107229326a01ff0f333a1d3476e068d)
+[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tonarino/innernet/blob/master/LICENSE)
+
 A private network system that uses [WireGuard](https://wireguard.com) under the hood. See the [announcement blog post](https://blog.tonari.no/introducing-innernet) for a longer-winded explanation.
 
 <img src="https://user-images.githubusercontent.com/373823/118917068-09ae7700-b96b-11eb-80f4-6860072d504d.gif" width="600" height="370">
@@ -195,9 +198,13 @@ It's assumed that WireGuard is installed on your system, either via the kernel m
 pacman -S innernet
 ```
 
+### Debian and Ubuntu
+
+[**@tommie**](https://github.com/tommie) is kindly providing Debian/Ubuntu innernet builds in the https://github.com/tommie/innernet-debian repository.
+
 ### Other Linux Distributions
 
-Starting with the 1.5.4 release, Debian and RPM packages are no longer built in this repository. We're looking for volunteers who are able to set up external builds for popular distributions. Please see issue [#203](https://github.com/tonarino/innernet/issues/203).
+We're looking for volunteers who are able to set up external builds for popular distributions. Please see issue [#203](https://github.com/tonarino/innernet/issues/203).
 
 ### macOS
 
@@ -209,10 +216,10 @@ brew install tonarino/innernet/innernet
 
 ```sh
 # to install innernet:
-cargo install --git https://github.com/tonarino/innernet --tag v1.5.5 client
+cargo install --git https://github.com/tonarino/innernet --tag v1.6.0 client
 
 # to install innernet-server:
-cargo install --git https://github.com/tonarino/innernet --tag v1.5.5 server
+cargo install --git https://github.com/tonarino/innernet --tag v1.6.0 server
 ```
 
 Note that you'll be responsible for updating manually.
@@ -248,6 +255,8 @@ The resulting binary will be located at `./target/release/innernet`
 
 ### Releases
 
-1. Run `cargo release [--dry-run] [minor|major|patch|...]` to automatically bump the crates appropriately.
-2. Create a new git tag (ex. `v0.6.0`).
-3. Push (with tags) to the repo.
+Please run the release script from a Linux machine: generated shell completions depend on available wireguard backends and Mac doesn't support the `kernel` backend. 
+
+1. Fetch and check-out the `main` branch.
+2. Run `./release.sh [patch|major|minor|rc]`
+3. Push the `main` branch and the created tag to the repo.
