@@ -366,7 +366,7 @@ pub fn get_by_name(name: &InterfaceName) -> Result<Device, io::Error> {
         responses.len()
     );
 
-    let nlas = responses.into_iter().fold(Ok(vec![]), |nlas_res, nlmsg| {
+    let nlas = responses.into_iter().try_fold(Ok(vec![]), |nlas_res, nlmsg| {
         let mut nlas = nlas_res?;
         let mut message = match nlmsg {
             NetlinkMessage {
