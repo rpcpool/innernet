@@ -1,4 +1,4 @@
-iname: Build and release  template
+name: Build and release  template
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -9,6 +9,8 @@ on:
   push:
     paths:
       - 'ci/innernet-ref.txt'
+  pull_request:
+    paths:
       - '.github/workflows/release.yml'
 
 jobs:
