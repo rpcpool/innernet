@@ -1,4 +1,4 @@
-name: Build and release  template
+name: Build and release innernet
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
