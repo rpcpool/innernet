@@ -43,7 +43,6 @@ jobs:
       with:
         repository: rpcpool/innernet
         ref: "${{ env.innernetRef }}"
-        path: pathx
         submodules: recursive
         fetch-depth: 0
         lfs: true

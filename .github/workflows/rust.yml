@@ -12,35 +12,44 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: [self-hosted,"${{ matrix.os }}"]
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-20.04, ubuntu-22.04]
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
+    - uses: actions/checkout@v4
+
+    - name: get channel
+      run: |
+        echo "channel=$(cat rust-toolchain.toml | grep channel | awk '{print $3}' | sed 's/"//g')" >> "$GITHUB_ENV"
+        
+    - name: set cargo env
+      uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
-        toolchain: stable
-        override: true
+        toolchain: ${{ env.channel }}
+
     - name: Install Dependencies (if Ubuntu)
       env:
         ACCEPT_EULA: Y
       run: sudo apt-get -y update && sudo apt-get install -f && sudo apt-get -y install libsqlite3-dev libclang-11-dev
       if: contains(runner.os, 'Linux')
+
     - uses: Swatinem/rust-cache@v1
+
     - name: Build
       uses: actions-rs/cargo@v1
       with:
         command: build
         args: --verbose
+
     - name: Test
       uses: actions-rs/cargo@v1
       with:
         command: test
         args: --verbose
+
     - name: Test (IPv6)
       uses: actions-rs/cargo@v1
       with:
@@ -48,15 +57,19 @@ jobs:
         args: --features v6-test --verbose
 
   fmt:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted,"${{ matrix.os }}"]
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
+    - uses: actions/checkout@v4
+
+    - name: get channel
+      run: |
+        echo "channel=$(cat rust-toolchain.toml | grep channel | awk '{print $3}' | sed 's/"//g')" >> "$GITHUB_ENV"
+
+    - name: set cargo env
+      uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
-        toolchain: nightly
-        override: true
-        components: rustfmt
+        toolchain: ${{ env.channel }}
+
     - name: Rustfmt
       uses: actions-rs/cargo@v1
       with:
@@ -64,15 +77,14 @@ jobs:
         args: --all -- --check
 
   clippy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted,"${{ matrix.os }}"]
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-        components: clippy
+    - uses: actions/checkout@v4
+
+    - name: get channel
+      run: |
+        echo "channel=$(cat rust-toolchain.toml | grep channel | awk '{print $3}' | sed 's/"//g')" >> "$GITHUB_ENV"
+        
     - name: Clippy
       uses: actions-rs/cargo@v1
       with:
