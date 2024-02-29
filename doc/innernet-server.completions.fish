@@ -37,7 +37,11 @@ complete -c innernet-server -n "__fish_seen_subcommand_from add-peer" -l invite-
 complete -c innernet-server -n "__fish_seen_subcommand_from add-peer" -l auto-ip -d 'Auto-assign the peer the first available IP within the CIDR'
 complete -c innernet-server -n "__fish_seen_subcommand_from add-peer" -l yes -d 'Bypass confirmation'
 complete -c innernet-server -n "__fish_seen_subcommand_from add-peer" -s h -l help -d 'Print help'
+complete -c innernet-server -n "__fish_seen_subcommand_from disable-peer" -l name -d 'Name of peer to enable/disable' -r
+complete -c innernet-server -n "__fish_seen_subcommand_from disable-peer" -l yes -d 'Bypass confirmation'
 complete -c innernet-server -n "__fish_seen_subcommand_from disable-peer" -s h -l help -d 'Print help'
+complete -c innernet-server -n "__fish_seen_subcommand_from enable-peer" -l name -d 'Name of peer to enable/disable' -r
+complete -c innernet-server -n "__fish_seen_subcommand_from enable-peer" -l yes -d 'Bypass confirmation'
 complete -c innernet-server -n "__fish_seen_subcommand_from enable-peer" -s h -l help -d 'Print help'
 complete -c innernet-server -n "__fish_seen_subcommand_from rename-peer" -l name -d 'Name of peer to rename' -r
 complete -c innernet-server -n "__fish_seen_subcommand_from rename-peer" -l new-name -d 'The new name of the peer' -r

@@ -162,6 +162,8 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (disable-peer)
 _arguments "${_arguments_options[@]}" \
+'--name=[Name of peer to enable/disable]:NAME: ' \
+'--yes[Bypass confirmation]' \
 '-h[Print help]' \
 '--help[Print help]' \
 ':interface:' \
@@ -169,6 +171,8 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (enable-peer)
 _arguments "${_arguments_options[@]}" \
+'--name=[Name of peer to enable/disable]:NAME: ' \
+'--yes[Bypass confirmation]' \
 '-h[Print help]' \
 '--help[Print help]' \
 ':interface:' \

@@ -143,10 +143,14 @@ set edit:completion:arg-completer[innernet] = {|@words|
             cand --help 'Print help'
         }
         &'innernet;disable-peer'= {
+            cand --name 'Name of peer to enable/disable'
+            cand --yes 'Bypass confirmation'
             cand -h 'Print help'
             cand --help 'Print help'
         }
         &'innernet;enable-peer'= {
+            cand --name 'Name of peer to enable/disable'
+            cand --yes 'Bypass confirmation'
             cand -h 'Print help'
             cand --help 'Print help'
         }

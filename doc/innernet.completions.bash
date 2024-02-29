@@ -301,12 +301,16 @@ _innernet() {
             return 0
             ;;
         innernet__disable__peer)
-            opts="-h --help <INTERFACE>"
+            opts="-h --name --yes --help <INTERFACE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --name)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -329,12 +333,16 @@ _innernet() {
             return 0
             ;;
         innernet__enable__peer)
-            opts="-h --help <INTERFACE>"
+            opts="-h --name --yes --help <INTERFACE>"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --name)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;

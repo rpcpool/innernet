@@ -78,7 +78,11 @@ complete -c innernet -n "__fish_seen_subcommand_from delete-cidr" -l yes -d 'Byp
 complete -c innernet -n "__fish_seen_subcommand_from delete-cidr" -s h -l help -d 'Print help'
 complete -c innernet -n "__fish_seen_subcommand_from list-cidrs" -s t -l tree -d 'Display CIDRs in tree format'
 complete -c innernet -n "__fish_seen_subcommand_from list-cidrs" -s h -l help -d 'Print help'
+complete -c innernet -n "__fish_seen_subcommand_from disable-peer" -l name -d 'Name of peer to enable/disable' -r
+complete -c innernet -n "__fish_seen_subcommand_from disable-peer" -l yes -d 'Bypass confirmation'
 complete -c innernet -n "__fish_seen_subcommand_from disable-peer" -s h -l help -d 'Print help'
+complete -c innernet -n "__fish_seen_subcommand_from enable-peer" -l name -d 'Name of peer to enable/disable' -r
+complete -c innernet -n "__fish_seen_subcommand_from enable-peer" -l yes -d 'Bypass confirmation'
 complete -c innernet -n "__fish_seen_subcommand_from enable-peer" -s h -l help -d 'Print help'
 complete -c innernet -n "__fish_seen_subcommand_from add-association" -l yes -d 'Bypass confirmation'
 complete -c innernet -n "__fish_seen_subcommand_from add-association" -s h -l help -d 'Print help'

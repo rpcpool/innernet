@@ -158,11 +158,15 @@ Register-ArgumentCompleter -Native -CommandName 'innernet' -ScriptBlock {
             break
         }
         'innernet;disable-peer' {
+            [CompletionResult]::new('--name', 'name', [CompletionResultType]::ParameterName, 'Name of peer to enable/disable')
+            [CompletionResult]::new('--yes', 'yes', [CompletionResultType]::ParameterName, 'Bypass confirmation')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
         }
         'innernet;enable-peer' {
+            [CompletionResult]::new('--name', 'name', [CompletionResultType]::ParameterName, 'Name of peer to enable/disable')
+            [CompletionResult]::new('--yes', 'yes', [CompletionResultType]::ParameterName, 'Bypass confirmation')
             [CompletionResult]::new('-h', 'h', [CompletionResultType]::ParameterName, 'Print help')
             [CompletionResult]::new('--help', 'help', [CompletionResultType]::ParameterName, 'Print help')
             break
