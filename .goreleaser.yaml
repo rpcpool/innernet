@@ -13,6 +13,12 @@
 
 version: 2
 
+# Pinned explicitly: Binaries-ci's goreleaser patch uploads to
+# gs://nomad-triton-test/{{ .ProjectName }}/v{{ .Version }}, and the ansible
+# innernet roles derive that same object path from the repo basename. Leaving it
+# to goreleaser's default derivation would make the GCS prefix implicit.
+project_name: innernet
+
 before:
     hooks:
         - cargo build --release --target x86_64-unknown-linux-gnu --package=innernet --package=innernet-server
